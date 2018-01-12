@@ -1,0 +1,50 @@
+workspace:
+  base: /drone
+  path: src
+pipeline:
+  clone-portage:
+    image: alpine/git
+    commands:
+      - test -f /.gentoo-portage.git/config || git clone --mirror https://github.com/gentoo/gentoo.git /.gentoo-portage.git
+      - GIT_DIR=/.gentoo-portage.git git fetch --all
+      - git clone --reference /.gentoo-portage.git https://github.com/gentoo/gentoo.git portage
+      - cd portage && git checkout ${PORTAGE_REF}
+    volumes:
+      - /var/lib/drone/cache/gentoo-portage.git:/.gentoo-portage.git
+
+  build-packages:
+    image: ${BASE_IMAGE}
+    environment:
+      - BASE_IMAGE=${BASE_IMAGE}
+    commands:
+      - ln -sf /drone/src/portage /usr/portage
+      - make Dockerfile.build
+      - make emerge
+    privileged: true
+    volumes:
+      - /var/lib/drone/cache/gentoo-packages:/drone/src/portage/packages
+
+  publish-docker-image:
+    image: plugins/docker
+    mirror: https://mirror.gcr.io
+    dockerfile: Dockerfile.build
+    squash: true
+    compress: true
+    registry: gcr.io
+    repo: gcr.io/pl-infra/gentoo-builder
+    username: _json_key
+    tags: ["${DRONE_BRANCH/master/latest}${TAG_SUFFIX}", "${DRONE_BUILD_NUMBER}${TAG_SUFFIX}"]
+    force_tag: true
+    secrets:
+      - source: GOOGLE_CREDENTIALS
+        target: DOCKER_PASSWORD
+    when:
+      event: push
+    volumes:
+      - /var/lib/drone/cache/gentoo-packages:/drone/src/packages
+
+matrix:
+  include:
+    - BASE_IMAGE: docker.io/gentoo/stage3-amd64:20171228
+      PORTAGE_REF: 4288d7493b56b3db54abd330c62b15fd69158eb8
+      TAG_SUFFIX: ""
