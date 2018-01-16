@@ -1,32 +1,56 @@
-BASE_IMAGE ?= docker.io/gentoo/stage3-amd64:20171228
+BASE_IMAGE ?= docker.io/gentoo/stage3-amd64-hardened-nomultilib:20180115
 IMAGE ?= gentoo-builder
 GENTOO_MIRRORS ?= http://mirror.leaseweb.com/gentoo/ http://mirror.eu.oneandone.net/linux/distributions/gentoo/gentoo/
-PORTAGE_REF ?= origin/master
+PORTAGE_BINHOST ?= https://pl-gentoo-packages.storage.googleapis.com/
 
-BUILD_PACKAGES = dev-vcs/git app-portage/mirrorselect net-misc/curl
+INSTALL_PACKAGES = dev-vcs/git app-portage/mirrorselect net-misc/curl app-portage/layman
+
+ifeq ($(shell uname -s),Darwin)  # Mac OS X
+	NUM_JOBS := $(shell sysctl -n hw.ncpu)
+else
+	NUM_JOBS := $(shell sh -c 'grep processor /proc/cpuinfo | wc -l')
+endif
+EMERGE = emerge -j$(NUM_JOBS) --getbinpkg --usepkg
+
+MAKE_EMERGE_CMD = make emerge && quickpkg --include-unmodified-config y "*/*"
+
+ifndef CI
+	MAKE_PACKAGES_CMD := docker run --rm -it --privileged -v $(PWD)/portage:/usr/portage:cached -v $(PWD)/packages:/usr/portage/packages:cached -v $(PWD)/Makefile:/Makefile $(BASE_IMAGE) sh -c 'cd / ; $(MAKE_EMERGE_CMD)'
+else
+	MAKE_PACKAGES_CMD := $(MAKE_EMERGE_CMD)
+endif
 
 .PHONY: image
-image: portage packages/Packages Dockerfile.build
-	docker build -f Dockerfile.build -t $(IMAGE) .
+image: packages/Packages Dockerfile.build
+	docker build --squash -f Dockerfile.build -t $(IMAGE) .
 
 Dockerfile.build: Dockerfile
-	cat Dockerfile | sed "s|BASEIMAGE|$(BASE_IMAGE)|g" > Dockerfile.build
+	cat Dockerfile | \
+		sed "s|BASEIMAGE|$(BASE_IMAGE)|g" | \
+		sed "s|PORTAGE_REF|PORTAGE_REF=$(shell cd portage && git rev-parse --verify HEAD)|g" \
+	> Dockerfile.build
 
 .PHONY: packages
-packages: portage packages/Packages
+packages: packages/Packages
 
-packages/Packages: portage/.git/HEAD
-	docker run --rm -it --cap-add=SYS_PTRACE -v $(PWD)/portage:/usr/portage:cached -v $(PWD)/packages:/usr/portage/packages:cached -v $(PWD)/Makefile:/Makefile $(BASE_IMAGE) sh -c 'cd / ; make emerge'
-	touch packages/Packages
+packages/Packages: .git/modules/portage/HEAD
+	$(MAKE_PACKAGES_CMD)
 
 emerge:
 	echo 'GENTOO_MIRRORS="$(GENTOO_MIRRORS)"' >> /etc/portage/make.conf
-	readlink /etc/portage/make.profile | grep no-multilib 2>&1 >/dev/null && eselect profile set default/linux/amd64/17.0/no-multilib || eselect profile set default/linux/amd64/17.0
-	FEATURES="buildpkg" emerge -k -j$(shell sh -c 'grep processor /proc/cpuinfo | wc -l') -e @world $(BUILD_PACKAGES)
+	echo 'PORTAGE_BINHOST="$(PORTAGE_BINHOST)"' >> /etc/portage/make.conf
+	echo 'USE="gdbm berkdb" # hardened profile starts with empty USE flags, but stage3 is built with them so we reduce the number of rebuilds' >> /etc/portage/make.conf
+	echo 'sys-devel/gcc pgo' > /etc/portage/package.use/gcc
+	echo 'dev-lang/python pgo ' > /etc/portage/package.use/python
+	echo 'app-portage/layman sync-plugin-portage git' > /etc/portage/package.use/layman
+	readlink /etc/portage/make.profile | grep no-multilib 2>&1 >/dev/null && eselect profile set default/linux/amd64/17.0/no-multilib/hardened || eselect profile set default/linux/amd64/17.0/hardened
+	$(EMERGE) -q --info
+	$(EMERGE) --pretend -uDU --with-bdeps=y @world
+	$(EMERGE) -q        -uDU --with-bdeps=y @world
+	$(EMERGE) -q --depclean
+	$(EMERGE) --pretend $(INSTALL_PACKAGES)
+	$(EMERGE) -q $(INSTALL_PACKAGES)
 
-.PHONY: portage
-portage: portage/.git
-	(cd portage && git fetch && git checkout $(PORTAGE_REF))
-
-portage/.git:
-	git clone https://github.com/gentoo/gentoo.git portage
+clean:
+	rm -rf packages
+	rm -rf Dockerfile.build

@@ -2,49 +2,46 @@ workspace:
   base: /drone
   path: src
 pipeline:
-  clone-portage:
-    image: alpine/git
-    commands:
-      - test -f /.gentoo-portage.git/config || git clone --mirror https://github.com/gentoo/gentoo.git /.gentoo-portage.git
-      - GIT_DIR=/.gentoo-portage.git git fetch --all
-      - git clone --reference /.gentoo-portage.git https://github.com/gentoo/gentoo.git portage
-      - cd portage && git checkout ${PORTAGE_REF}
-    volumes:
-      - /var/lib/drone/cache/gentoo-portage.git:/.gentoo-portage.git
-
-  build-packages:
+  build:
     image: ${BASE_IMAGE}
     environment:
       - BASE_IMAGE=${BASE_IMAGE}
+      - PKGDIR=/drone/src/packages
+      - PORTAGE_BINHOST=https://pl-gentoo-packages.storage.googleapis.com/${DRONE_BRANCH/master/latest}${SUBTAG}
     commands:
       - ln -sf /drone/src/portage /usr/portage
       - make Dockerfile.build
-      - make emerge
-    privileged: true
-    volumes:
-      - /var/lib/drone/cache/gentoo-packages:/drone/src/portage/packages
+      - make packages
+
+  publish-packages-to-gcs:
+    image: wyattjoh/drone-gcs
+    acl: public
+    bucket: "pl-gentoo-packages"
+    source: packages/**/*
+    strip_prefix: packages/
+    cache_control: private, max-age=0
+    target: /${DRONE_BRANCH/master/latest}${SUBTAG}/
+    secrets:
+      - source: GOOGLE_CREDENTIALS
+        target: GOOGLE_APPLICATION_CREDENTIALS_CONTENTS
 
   publish-docker-image:
     image: plugins/docker
     mirror: https://mirror.gcr.io
     dockerfile: Dockerfile.build
     squash: true
-    compress: true
     registry: gcr.io
     repo: gcr.io/pl-infra/gentoo-builder
     username: _json_key
-    tags: ["${DRONE_BRANCH/master/latest}${TAG_SUFFIX}", "${DRONE_BUILD_NUMBER}${TAG_SUFFIX}"]
+    tags: ["${DRONE_BRANCH/master/latest}${SUBTAG}"]
     force_tag: true
     secrets:
       - source: GOOGLE_CREDENTIALS
         target: DOCKER_PASSWORD
     when:
       event: push
-    volumes:
-      - /var/lib/drone/cache/gentoo-packages:/drone/src/packages
 
 matrix:
   include:
-    - BASE_IMAGE: docker.io/gentoo/stage3-amd64:20171228
-      PORTAGE_REF: 4288d7493b56b3db54abd330c62b15fd69158eb8
-      TAG_SUFFIX: ""
+    - BASE_IMAGE: docker.io/gentoo/stage3-amd64-hardened-nomultilib:20180115
+      SUBTAG:
