@@ -7,11 +7,26 @@ pipeline:
     environment:
       - BASE_IMAGE=${BASE_IMAGE}
       - PKGDIR=/drone/src/packages
-      - PORTAGE_BINHOST=https://pl-gentoo-packages.storage.googleapis.com/${DRONE_BRANCH/master/latest}${SUBTAG}
+      - PORTAGE_BINHOST=https://pl-gentoo-packages.storage.googleapis.com/${DRONE_BRANCH/master/latest}
     commands:
       - ln -sf /drone/src/portage /usr/portage
       - make Dockerfile.build
       - make packages
+    when:
+      event: [ push ]
+
+  build:
+    image: ${BASE_IMAGE}
+    environment:
+      - BASE_IMAGE=${BASE_IMAGE}
+      - PKGDIR=/drone/src/packages
+      - PORTAGE_BINHOST=https://pl-gentoo-packages.storage.googleapis.com/${DRONE_TAG##v}
+    commands:
+      - ln -sf /drone/src/portage /usr/portage
+      - make Dockerfile.build
+      - make packages
+    when:
+      event: [ tag ]
 
   publish-packages-to-gcs:
     image: wyattjoh/drone-gcs
@@ -20,10 +35,26 @@ pipeline:
     source: packages/**/*
     strip_prefix: packages/
     cache_control: private, max-age=0
-    target: /${DRONE_BRANCH/master/latest}${SUBTAG}/
+    target: /${DRONE_BRANCH/master/latest}/
     secrets:
       - source: GOOGLE_CREDENTIALS
         target: GOOGLE_APPLICATION_CREDENTIALS_CONTENTS
+    when:
+      event: [ push ]
+
+  publish-packages-to-gcs:
+    image: wyattjoh/drone-gcs
+    acl: public
+    bucket: "pl-gentoo-packages"
+    source: packages/**/*
+    strip_prefix: packages/
+    cache_control: private, max-age=0
+    target: /${DRONE_TAG##v}/
+    secrets:
+      - source: GOOGLE_CREDENTIALS
+        target: GOOGLE_APPLICATION_CREDENTIALS_CONTENTS
+    when:
+      event: [ tag ]
 
   publish-docker-image:
     image: plugins/docker
@@ -33,15 +64,30 @@ pipeline:
     registry: gcr.io
     repo: gcr.io/pl-infra/gentoo-builder
     username: _json_key
-    tags: ["${DRONE_BRANCH/master/latest}${SUBTAG}"]
+    tags: [ "${DRONE_BRANCH/master/latest}" ]
     force_tag: true
     secrets:
       - source: GOOGLE_CREDENTIALS
         target: DOCKER_PASSWORD
     when:
-      event: push
+      event: [ push ]
+
+  publish-docker-image:
+    image: plugins/docker
+    mirror: https://mirror.gcr.io
+    dockerfile: Dockerfile.build
+    squash: true
+    registry: gcr.io
+    repo: gcr.io/pl-infra/gentoo-builder
+    username: _json_key
+    tags: [ "${DRONE_TAG##v}" ]
+    force_tag: true
+    secrets:
+      - source: GOOGLE_CREDENTIALS
+        target: DOCKER_PASSWORD
+    when:
+      event: [ tag ]
 
 matrix:
   include:
     - BASE_IMAGE: docker.io/gentoo/stage3-amd64-hardened-nomultilib:20180115
-      SUBTAG:
