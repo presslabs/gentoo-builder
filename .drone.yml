@@ -7,7 +7,7 @@ pipeline:
     environment:
       - BASE_IMAGE=${BASE_IMAGE}
       - PKGDIR=/drone/src/packages
-      - PORTAGE_BINHOST=https://pl-gentoo-packages.storage.googleapis.com/${DRONE_BRANCH/master/latest}
+      - PORTAGE_BINHOST=https://storage.googleapis.com/gentoo.presslabs.net/packages/${DRONE_BRANCH/master/latest}
     commands:
       - ln -sf /drone/src/portage /usr/portage
       - make Dockerfile.build
@@ -20,7 +20,7 @@ pipeline:
     environment:
       - BASE_IMAGE=${BASE_IMAGE}
       - PKGDIR=/drone/src/packages
-      - PORTAGE_BINHOST=https://pl-gentoo-packages.storage.googleapis.com/${DRONE_TAG##v}
+      - PORTAGE_BINHOST=https://storage.googleapis.com/gentoo.presslabs.net/packages/${DRONE_TAG##v}
     commands:
       - ln -sf /drone/src/portage /usr/portage
       - make Dockerfile.build
@@ -31,11 +31,11 @@ pipeline:
   publish-packages-to-gcs:
     image: wyattjoh/drone-gcs
     acl: public
-    bucket: "pl-gentoo-packages"
+    bucket: "gentoo.presslabs.net"
     source: packages/**/*
     strip_prefix: packages/
     cache_control: private, max-age=0
-    target: /${DRONE_BRANCH/master/latest}/
+    target: /packages/${DRONE_BRANCH/master/latest}/
     secrets:
       - source: GOOGLE_CREDENTIALS
         target: GOOGLE_APPLICATION_CREDENTIALS_CONTENTS
@@ -45,11 +45,11 @@ pipeline:
   publish-packages-to-gcs:
     image: wyattjoh/drone-gcs
     acl: public
-    bucket: "pl-gentoo-packages"
+    bucket: "gentoo.presslabs.net"
     source: packages/**/*
     strip_prefix: packages/
     cache_control: private, max-age=0
-    target: /${DRONE_TAG##v}/
+    target: /packages/${DRONE_TAG##v}/
     secrets:
       - source: GOOGLE_CREDENTIALS
         target: GOOGLE_APPLICATION_CREDENTIALS_CONTENTS

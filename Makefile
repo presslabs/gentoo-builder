@@ -1,7 +1,7 @@
 BASE_IMAGE ?= docker.io/gentoo/stage3-amd64-hardened-nomultilib:20180115
 IMAGE ?= gentoo-builder
 GENTOO_MIRRORS ?= http://mirror.leaseweb.com/gentoo/ http://mirror.eu.oneandone.net/linux/distributions/gentoo/gentoo/
-PORTAGE_BINHOST ?= https://pl-gentoo-packages.storage.googleapis.com/
+PORTAGE_BINHOST ?= https://storage.googleapis.com/gentoo.presslabs.net/packages/latest
 
 INSTALL_PACKAGES = dev-vcs/git app-portage/mirrorselect net-misc/curl app-portage/layman
 
@@ -12,7 +12,7 @@ else
 endif
 EMERGE = emerge -j$(NUM_JOBS) --getbinpkg --usepkg
 
-MAKE_EMERGE_CMD = make emerge && quickpkg --include-unmodified-config y "*/*"
+MAKE_EMERGE_CMD = make emerge && quickpkg --include-config y "*/*"
 
 ifndef CI
 	MAKE_PACKAGES_CMD := docker run --rm -it --privileged -v $(PWD)/portage:/usr/portage:cached -v $(PWD)/packages:/usr/portage/packages:cached -v $(PWD)/Makefile:/Makefile $(BASE_IMAGE) sh -c 'cd / ; $(MAKE_EMERGE_CMD)'
