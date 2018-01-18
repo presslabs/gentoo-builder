@@ -10,6 +10,7 @@ pipeline:
       - PORTAGE_BINHOST=https://storage.googleapis.com/gentoo.presslabs.net/packages/${DRONE_BRANCH/master/latest}
     commands:
       - ln -sf /drone/src/portage /usr/portage
+      - wget -q -S --spider https://storage.googleapis.com/gentoo.presslabs.net/packages/latest/Packages
       - make Dockerfile.build
       - make packages
     when:
@@ -61,6 +62,7 @@ pipeline:
     mirror: https://mirror.gcr.io
     dockerfile: Dockerfile.build
     squash: true
+    compress: true # we compress the context since portage can be very big
     registry: gcr.io
     repo: gcr.io/pl-infra/gentoo-builder
     username: _json_key
@@ -77,6 +79,7 @@ pipeline:
     mirror: https://mirror.gcr.io
     dockerfile: Dockerfile.build
     squash: true
+    compress: true # we compress the context since portage can be very big
     registry: gcr.io
     repo: gcr.io/pl-infra/gentoo-builder
     username: _json_key
