@@ -12,7 +12,7 @@ else
 endif
 EMERGE = emerge -j$(NUM_JOBS) --getbinpkg --usepkg
 
-MAKE_EMERGE_CMD = make emerge && quickpkg --include-config y "*/*"
+MAKE_EMERGE_CMD = make emerge && quickpkg --include-unmodified-config y "*/*"
 
 ifndef CI
 	MAKE_PACKAGES_CMD := docker run --rm -it --privileged -v $(PWD)/portage:/usr/portage:cached -v $(PWD)/packages:/usr/portage/packages:cached -v $(PWD)/Makefile:/Makefile -w / $(BASE_IMAGE) sh -c '$(MAKE_EMERGE_CMD)'
