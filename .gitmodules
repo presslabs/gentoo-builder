@@ -1,3 +1,4 @@
 [submodule "portage"]
 	path = portage
-	url = https://github.com/gentoo/gentoo.git
+	url = https://github.com/gentoo-mirror/gentoo.git
+	branch = master
