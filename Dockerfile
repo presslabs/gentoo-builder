@@ -7,5 +7,4 @@ COPY ./Makefile /usr/src/Makefile
 RUN set -ex \
     && cd /usr/src \
     && make emerge \
-    && rm -rf /usr/portage /usr/src/Makefile \
-    && mkdir /usr/portage
+    && rm /usr/src/Makefile
