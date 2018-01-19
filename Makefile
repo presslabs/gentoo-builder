@@ -37,9 +37,13 @@ packages/Packages: .git/modules/portage/HEAD
 	$(MAKE_PACKAGES_CMD)
 
 emerge:
+	echo 'LANG="en_US.UTF-8"' >> /etc/env.d/02locale
+	echo 'LC_COLLATE="C"' >> /etc/env.d/02locale
+	env-update && source /etc/profile
 	echo 'GENTOO_MIRRORS="$(GENTOO_MIRRORS)"' >> /etc/portage/make.conf
 	echo 'PORTAGE_BINHOST="$(PORTAGE_BINHOST)"' >> /etc/portage/make.conf
 	echo 'USE="gdbm berkdb" # hardened profile starts with empty USE flags, but stage3 is built with them so we reduce the number of rebuilds' >> /etc/portage/make.conf
+	echo 'USE="$${USE} -pam" # disable pam because we are building for docker images' >> /etc/portage/make.conf
 	echo 'sys-devel/gcc pgo' > /etc/portage/package.use/gcc
 	echo 'dev-lang/python pgo ' > /etc/portage/package.use/python
 	echo 'app-portage/layman sync-plugin-portage git' > /etc/portage/package.use/layman
