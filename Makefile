@@ -1,4 +1,4 @@
-BASE_IMAGE ?= docker.io/gentoo/stage3-amd64-hardened-nomultilib:20180115
+BASE_IMAGE ?= docker.io/gentoo/stage3-amd64-hardened-nomultilib:20180119
 IMAGE ?= gentoo-builder
 GENTOO_MIRRORS ?= http://mirror.leaseweb.com/gentoo/ http://mirror.eu.oneandone.net/linux/distributions/gentoo/gentoo/
 PORTAGE_BINHOST ?= https://storage.googleapis.com/gentoo.presslabs.net/packages/latest

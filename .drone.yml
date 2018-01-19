@@ -84,4 +84,4 @@ pipeline:
 
 matrix:
   include:
-    - BASE_IMAGE: docker.io/gentoo/stage3-amd64-hardened-nomultilib:20180115
+    - BASE_IMAGE: docker.io/gentoo/stage3-amd64-hardened-nomultilib:20180119
