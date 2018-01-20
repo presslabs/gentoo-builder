@@ -8,8 +8,11 @@ pipeline:
       - BASE_IMAGE=${BASE_IMAGE}
       - PKGDIR=/drone/src/packages
       - PORTAGE_BINHOST=https://storage.googleapis.com/gentoo.presslabs.net/packages/${DRONE_BRANCH/master/latest}
+      - PORT_LOGDIR=/drone/src/log
+      - FEATURES="binpkg-logs split-log"
     commands:
       - ln -sf /drone/src/portage /usr/portage
+      - mkdir /drone/src/log
       - make packages Dockerfile.build
     when:
       event: [ push ]
@@ -20,11 +23,25 @@ pipeline:
       - BASE_IMAGE=${BASE_IMAGE}
       - PKGDIR=/drone/src/packages
       - PORTAGE_BINHOST=https://storage.googleapis.com/gentoo.presslabs.net/packages/${DRONE_TAG##v}
+      - PORT_LOGDIR=/drone/src/log
+      - FEATURES="binpkg-logs split-log"
     commands:
       - ln -sf /drone/src/portage /usr/portage
+      - mkdir /drone/src/log
       - make packages Dockerfile.build
     when:
       event: [ tag ]
+
+  publish-build-logs-to-gcs:
+    image: gcr.io/pl-infra/kluster-toolbox:latest
+    pull: true
+    commands:
+      - /usr/local/bin/setup-credentials-helper.sh
+      - 'gsutil -m cp -r ./log/** gs://gentoo.presslabs.net/build-logs/${DRONE_BUILD_NUMBER}/'
+    secrets:
+      - GOOGLE_CREDENTIALS
+    when:
+      status: [ success, failure ]
 
   publish-packages-to-gcs:
     image: gcr.io/pl-infra/kluster-toolbox:latest
