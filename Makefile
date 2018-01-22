@@ -42,12 +42,15 @@ emerge:
 	env-update && source /etc/profile
 	echo 'GENTOO_MIRRORS="$(GENTOO_MIRRORS)"' >> /etc/portage/make.conf
 	echo 'PORTAGE_BINHOST="$(PORTAGE_BINHOST)"' >> /etc/portage/make.conf
-	echo 'USE="gdbm berkdb" # hardened profile starts with empty USE flags, but stage3 is built with them so we reduce the number of rebuilds' >> /etc/portage/make.conf
-	echo 'USE="$${USE} -pam" # disable pam because we are building for docker images' >> /etc/portage/make.conf
+	echo 'USE="minimal -bindist -X -man -doc -examples -pam -systemd" # minimal builds for docker images' >> /etc/portage/make.conf
+	echo 'LINGUAS="en"' >> /etc/portage/make.conf
+	echo 'INPUT_DEVICES=""' >> /etc/portage/make.conf
+	echo 'VIDEO_CARDS=""' >> /etc/portage/make.conf
 	echo 'sys-devel/gcc pgo' > /etc/portage/package.use/gcc
-	echo 'dev-lang/python pgo ' > /etc/portage/package.use/python
+	echo 'dev-lang/python pgo gdbm berkdb' > /etc/portage/package.use/python
 	echo 'app-portage/layman sync-plugin-portage git' > /etc/portage/package.use/layman
-	readlink /etc/portage/make.profile | grep no-multilib 2>&1 >/dev/null && eselect profile set default/linux/amd64/17.0/no-multilib/hardened || eselect profile set default/linux/amd64/17.0/hardened
+	readlink /etc/portage/make.profile | grep no-multilib 2>&1 >/dev/null && eselect profile set hardened/linux/amd64/no-multilib || hardened/linux/amd64
+	env
 	$(EMERGE) -q --info
 	$(EMERGE) --pretend -uDU --with-bdeps=y @world
 	$(EMERGE) -q        -uDU --with-bdeps=y @world
