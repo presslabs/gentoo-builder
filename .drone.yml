@@ -68,13 +68,10 @@ pipeline:
       event: [ tag ]
 
   publish-docker-image:
-    image: plugins/gcr:17.10
+    image: plugins/gcr
     mirror: https://mirror.gcr.io
     dockerfile: Dockerfile.build
-    experimental: true
-    squash: true
     compress: true # we compress the context since portage can be very big
-    registry: gcr.io
     repo: gcr.io/pl-infra/gentoo-builder
     tags: [ "${DRONE_BRANCH/master/latest}" ]
     force_tag: true
@@ -84,13 +81,10 @@ pipeline:
       event: [ push ]
 
   publish-docker-image:
-    image: plugins/gcr:17.10
+    image: plugins/gcr
     mirror: https://mirror.gcr.io
     dockerfile: Dockerfile.build
-    experimental: true
-    squash: true
     compress: true # we compress the context since portage can be very big
-    registry: gcr.io
     repo: gcr.io/pl-infra/gentoo-builder
     tags: [ "${DRONE_TAG##v}" ]
     force_tag: true
