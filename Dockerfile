@@ -19,30 +19,33 @@ COPY ./builder/ /
 RUN set -ex \
     && env \
     && emerge --info
-    # && make emerge \
-    # && rm /usr/src/Makefile \
-    # && rm -rf /usr/portage/packages
+
+# update @world to new use flags and new pakage versions
+RUN set -ex \
+    && emerge -j4 -gk --pretend --update --changed-use sys-libs/glibc \
+    && emerge -j4 -gk           --update --changed-use sys-libs/glibc
+
+RUN set -ex \
+    && emerge -j4 -gk --pretend --update --changed-use sys-devel/gcc \
+    && emerge -j4 -gk           --update --changed-use sys-devel/gcc
 
 RUN set -ex \
     && emerge -j4 -gk --pretend -uDU --with-bdeps=y @world \
-    && emerge -j4 -gk           -uDU --with-bdeps=y @world
+    && emerge -j4 -gk           -uDU --with-bdeps=y @world \
+    && emerge -j4 --depclean \
+    && emerge -j4 -gk @preserved-rebuild
 
+# install some additional packages (git, curl and layman)
 RUN set -ex \
-    && emerge -j4 --depclean
-
-ENV FEATURES="sandbox usersandbox userpriv"
-RUN set -ex \
-    && emerge --info
+    && emerge --info \
     && emerge -j4 -gk --pretend dev-vcs/git net-misc/curl app-portage/layman \
-    && emerge -j4 -gk           dev-vcs/git dev-libs/libassuan-2.5.1 \
-    || cat /var/tmp/portage/dev-libs/libassuan-2.5.1/temp/build.log
+    && emerge -j4 -gk           dev-vcs/git net-misc/curl app-portage/layman
 
-
-# FROM scratch
-# ARG GENTOO_MIRRORS
-# ARG PORTAGE_BINHOST
-# ENV PORTAGE_BINHOST=${PORTAGE_BINHOST}
-# ENV GENTOO_MIRRORS=${GENTOO_MIRRORS}
-# WORKDIR /
-# COPY --from=builder / /
-# CMD ["/bin/bash"]
+FROM scratch
+ARG GENTOO_MIRRORS
+ARG PORTAGE_BINHOST
+ENV PORTAGE_BINHOST=${PORTAGE_BINHOST}
+ENV GENTOO_MIRRORS=${GENTOO_MIRRORS}
+WORKDIR /
+COPY --from=builder / /
+CMD ["/bin/bash"]
