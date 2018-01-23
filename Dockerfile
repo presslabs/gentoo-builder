@@ -41,6 +41,11 @@ RUN set -ex \
     && emerge -j4 -gk --pretend dev-vcs/git net-misc/curl app-portage/layman \
     && emerge -j4 -gk           dev-vcs/git net-misc/curl app-portage/layman
 
+RUN set -ex \
+    && rm -rf /usr/portage/metadata/md5-cache/ \
+    && rm -rf /usr/portage/packages/ \
+    && rm -rf /usr/portage/distfiles/
+
 FROM scratch
 ARG GENTOO_MIRRORS
 ARG PORTAGE_BINHOST
