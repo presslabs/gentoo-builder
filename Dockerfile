@@ -1,7 +1,8 @@
-ARG PORTAGE_IMAGE=docker.io/gentoo/portage:20180122
-ARG STAGE3_IMAGE=docker.io/gentoo/stage3-amd64-hardened-nomultilib:20180122
+ARG SNAPSHOT=latest
+ARG PORTAGE_IMAGE=docker.io/gentoo/portage:${SNAPSHOT}
+ARG STAGE3_IMAGE=docker.io/gentoo/stage3-amd64-hardened:${SNAPSHOT}
+
 ARG GENTOO_MIRRORS=http://mirror.leaseweb.com/gentoo/
-ARG PORTAGE_BINHOST=https://storage.googleapis.com/gentoo.presslabs.net/packages/latest
 
 # we need a portage snapshot
 FROM ${PORTAGE_IMAGE} as portage
@@ -9,12 +10,10 @@ FROM ${PORTAGE_IMAGE} as portage
 # build all the packages
 FROM ${STAGE3_IMAGE} as builder
 ARG GENTOO_MIRRORS
-ARG PORTAGE_BINHOST
-ENV PORTAGE_BINHOST=${PORTAGE_BINHOST}
 ENV GENTOO_MIRRORS=${GENTOO_MIRRORS}
 
 COPY --from=portage /usr/portage /usr/portage
-COPY ./builder/ /
+COPY ./files/ /
 
 RUN set -ex \
     && env \
@@ -48,8 +47,6 @@ RUN set -ex \
 
 FROM scratch
 ARG GENTOO_MIRRORS
-ARG PORTAGE_BINHOST
-ENV PORTAGE_BINHOST=${PORTAGE_BINHOST}
 ENV GENTOO_MIRRORS=${GENTOO_MIRRORS}
 WORKDIR /
 COPY --from=builder / /

@@ -2,107 +2,18 @@ workspace:
   base: /drone
   path: src
 pipeline:
-  # build:
-  #   image: ${BASE_IMAGE}
-  #   privileged: true
-  #   environment:
-  #     - BASE_IMAGE=${BASE_IMAGE}
-  #     - PKGDIR=/drone/src/packages
-  #     - PORTAGE_BINHOST=https://storage.googleapis.com/gentoo.presslabs.net/packages/${DRONE_BRANCH/master/latest}
-  #     - PORT_LOGDIR=/drone/src/log
-  #     - FEATURES="binpkg-logs split-log"
-  #   commands:
-  #     # - ln -sf /drone/src/portage /usr/portage
-  #     # - mkdir /drone/src/log
-  #     # - make packages Dockerfile.build
-  #     - make Dockerfile.build
-  #   when:
-  #     event: [ push ]
-
-  # build:
-  #   image: ${BASE_IMAGE}
-  #   privileged: true
-  #   environment:
-  #     - BASE_IMAGE=${BASE_IMAGE}
-  #     - PKGDIR=/drone/src/packages
-  #     - PORTAGE_BINHOST=https://storage.googleapis.com/gentoo.presslabs.net/packages/${DRONE_TAG##v}
-  #     - PORT_LOGDIR=/drone/src/log
-  #     - FEATURES="binpkg-logs split-log"
-  #   commands:
-  #     - ln -sf /drone/src/portage /usr/portage
-  #     - mkdir /drone/src/log
-  #     - make packages Dockerfile.build
-  #   when:
-  #     event: [ tag ]
-
-  # publish-build-logs-to-gcs:
-  #   image: gcr.io/pl-infra/kluster-toolbox:latest
-  #   pull: true
-  #   commands:
-  #     - /usr/local/bin/setup-credentials-helper.sh
-  #     - 'gsutil -m cp -r ./log/** gs://gentoo.presslabs.net/build-logs/${DRONE_BUILD_NUMBER}/'
-  #   secrets:
-  #     - GOOGLE_CREDENTIALS
-  #   when:
-  #     status: [ success, failure ]
-
-  # publish-packages-to-gcs:
-  #   image: gcr.io/pl-infra/kluster-toolbox:latest
-  #   pull: true
-  #   commands:
-  #     - /usr/local/bin/setup-credentials-helper.sh
-  #     - 'gsutil -m -h "Cache-Control: private, max-age=0" cp -r ./packages/** gs://gentoo.presslabs.net/packages/${DRONE_BRANCH/master/latest}/'
-  #   secrets:
-  #     - GOOGLE_CREDENTIALS
-  #   when:
-  #     event: [ push ]
-
-  # publish-packages-to-gcs:
-  #   image: gcr.io/pl-infra/kluster-toolbox:latest
-  #   pull: true
-  #   commands:
-  #     - /usr/local/bin/setup-credentials-helper.sh
-  #     - 'gsutil -m -h "Cache-Control: private, max-age=0" cp -r ./packages/** gs://gentoo.presslabs.net/packages/${DRONE_TAG##v}/'
-  #   secrets:
-  #     - GOOGLE_CREDENTIALS
-  #   when:
-  #     event: [ tag ]
-
   build:
     image: plugins/gcr
     mirror: https://mirror.gcr.io
     dockerfile: Dockerfile
-    compress: true # we compress the context since portage can be very big
     repo: gcr.io/pl-infra/gentoo-builder
-    tags: [ "${DRONE_BRANCH/master/latest}" ]
-    force_tag: true
-    daemon_off: true # use system docker
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+    tags: [ "${DRONE_BRANCH/master/latest}", "${GENTOO_SNAPSHOT}-r${DRONE_BUILD_NUMBER}" ]
     build_args:
-      - STAGE3_IMAGE=${STAGE3_IMAGE}
-      - PORTAGE_IMAGE=${PORTAGE_IMAGE}
-      - PORTAGE_BINHOST=https://storage.googleapis.com/gentoo.presslabs.net/packages/${DRONE_BRANCH/master/latest}
+      - SNAPSHOT=${GENTOO_SNAPSHOT}
     secrets:
       - GOOGLE_CREDENTIALS
     when:
       event: [ push ]
-
-  publish-docker-image:
-    image: plugins/gcr
-    mirror: https://mirror.gcr.io
-    dockerfile: Dockerfile.build
-    compress: true # we compress the context since portage can be very big
-    repo: gcr.io/pl-infra/gentoo-builder
-    tags: [ "${DRONE_TAG##v}" ]
-    force_tag: true
-    secrets:
-      - GOOGLE_CREDENTIALS
-    when:
-      event: [ tag ]
-
 matrix:
-  PORTAGE_IMAGE:
-    - docker.io/gentoo/portage:20180122
-  STAGE3_IMAGE:
-    - docker.io/gentoo/stage3-amd64-hardened-nomultilib:20180122
+  GENTOO_SNAPSHOT:
+    - "20180125"
