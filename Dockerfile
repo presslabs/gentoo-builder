@@ -37,8 +37,8 @@ RUN set -ex \
 # install some additional packages (git, curl and layman)
 RUN set -ex \
     && emerge --info \
-    && emerge -j4 --pretend dev-vcs/git net-misc/curl app-portage/layman app-admin/syslog-ng mail-mta/ssmtp sys-apps/s6 app-admin/su-exec \
-    && emerge -j4           dev-vcs/git net-misc/curl app-portage/layman app-admin/syslog-ng mail-mta/ssmtp sys-apps/s6 app-admin/su-exec
+    && emerge -j4 --pretend dev-vcs/git net-misc/curl app-admin/syslog-ng mail-mta/ssmtp sys-apps/s6 app-admin/su-exec \
+    && emerge -j4           dev-vcs/git net-misc/curl app-admin/syslog-ng mail-mta/ssmtp sys-apps/s6 app-admin/su-exec
 
 RUN set -ex \
     && rm -rf /usr/portage/metadata/md5-cache/ \
