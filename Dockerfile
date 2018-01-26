@@ -21,24 +21,24 @@ RUN set -ex \
 
 # update @world to new use flags and new pakage versions
 RUN set -ex \
-    && emerge -j4 -gk --pretend --update --changed-use sys-libs/glibc \
-    && emerge -j4 -gk           --update --changed-use sys-libs/glibc
+    && emerge -j4 --pretend --update --changed-use sys-libs/glibc \
+    && emerge -j4           --update --changed-use sys-libs/glibc
 
 RUN set -ex \
-    && emerge -j4 -gk --pretend --update --changed-use sys-devel/gcc \
-    && emerge -j4 -gk           --update --changed-use sys-devel/gcc
+    && emerge -j4 --pretend --update --changed-use sys-devel/gcc \
+    && emerge -j4           --update --changed-use sys-devel/gcc
 
 RUN set -ex \
-    && emerge -j4 -gk --pretend -uDU --with-bdeps=y @world \
-    && emerge -j4 -gk           -uDU --with-bdeps=y @world \
+    && emerge -j4 --pretend -uDU --with-bdeps=y @world \
+    && emerge -j4           -uDU --with-bdeps=y @world \
     && emerge -j4 --depclean \
-    && emerge -j4 -gk @preserved-rebuild
+    && emerge -j4 @preserved-rebuild
 
 # install some additional packages (git, curl and layman)
 RUN set -ex \
     && emerge --info \
-    && emerge -j4 -gk --pretend dev-vcs/git net-misc/curl app-portage/layman \
-    && emerge -j4 -gk           dev-vcs/git net-misc/curl app-portage/layman
+    && emerge -j4 --pretend dev-vcs/git net-misc/curl app-portage/layman \
+    && emerge -j4           dev-vcs/git net-misc/curl app-portage/layman
 
 RUN set -ex \
     && rm -rf /usr/portage/metadata/md5-cache/ \
